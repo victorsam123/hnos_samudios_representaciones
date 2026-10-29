@@ -1,0 +1,38 @@
+
+{% extends "base.html" %}
+{% block title %}{{ product.name }} | Wilson Samudio{% endblock %}
+
+{% block content %}
+<section class="container section">
+    <div class="product-detail">
+        <div class="detail-image">
+            {% if product.image_url %}
+            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+            {% else %}
+            <div class="image-placeholder">WS</div>
+            {% endif %}
+        </div>
+        <div class="detail-info">
+            <a class="text-link" href="{{ url_for('catalogo') }}">← Volver al catálogo</a>
+            <span class="product-category">{{ product.category.name }}</span>
+            <h1>{{ product.name }}</h1>
+            <p class="detail-price">{{ product.price | money }}</p>
+            <p>{{ product.description or 'Consulta con nosotros para obtener más información sobre este producto.' }}</p>
+            <p class="stock-text">
+                {% if product.stock > 0 %}
+                Disponible: {{ product.stock }} unidad(es)
+                {% else %}
+                Producto agotado
+                {% endif %}
+            </p>
+
+            {% if product.stock > 0 %}
+            <form method="post" action="{{ url_for('agregar_carrito', product_id=product.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary">Agregar al carrito</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

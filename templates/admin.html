@@ -1,0 +1,174 @@
+
+{% extends "base.html" %}
+{% block title %}Panel administrativo | Wilson Samudio{% endblock %}
+
+{% block content %}
+<section class="container section">
+    <div class="admin-heading">
+        <div>
+            <span class="eyebrow">GESTIÓN DEL NEGOCIO</span>
+            <h1>Panel administrativo</h1>
+        </div>
+        <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-secondary">Cerrar sesión</button>
+        </form>
+    </div>
+
+    <div class="admin-stats">
+        <div class="stat-card"><span>Productos</span><strong>{{ products | length }}</strong></div>
+        <div class="stat-card"><span>Pedidos recientes</span><strong>{{ orders | length }}</strong></div>
+        <div class="stat-card"><span>Novedades</span><strong>{{ news | length }}</strong></div>
+    </div>
+
+    <section class="admin-panel">
+        <h2>Categorías</h2>
+        <p>Las categorías se muestran en el catálogo y en el inicio al cargar o actualizar la página.</p>
+        <form method="post" action="{{ url_for('crear_categoria') }}" class="admin-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Nombre de la nueva categoría
+                <input name="name" maxlength="80" required placeholder="Por ejemplo: Jardinería">
+            </label>
+            <button class="btn btn-primary" type="submit">Agregar categoría</button>
+        </form>
+        <h3>Categorías disponibles</h3>
+        <ul>
+            {% for category in categories %}
+            <li><a href="{{ url_for('catalogo', categoria=category.slug) }}">{{ category.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="admin-panel">
+        <h2>Agregar producto</h2>
+        <form method="post" action="{{ url_for('crear_producto') }}" class="admin-form" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label>Nombre
+                <input name="name" maxlength="160" required>
+            </label>
+
+            <label>Categoría
+                <select name="category_id" required>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>Precio en guaraníes
+                <input name="price" type="number" min="0" step="1" required>
+            </label>
+
+            <label>Stock
+                <input name="stock" type="number" min="0" step="1" value="0" required>
+            </label>
+
+            <label>Imagen del producto
+                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
+                <small>Selecciona una foto de tu ordenador. JPG, PNG, WEBP o GIF; máximo 5 MB (opcional).</small>
+            </label>
+
+            <label>Descripción
+                <textarea name="description" maxlength="5000" rows="3"></textarea>
+            </label>
+
+            <label class="checkbox-label">
+                <input type="checkbox" name="featured"> Producto destacado
+            </label>
+
+            <button class="btn btn-primary">Guardar producto</button>
+        </form>
+    </section>
+
+    <section class="admin-panel">
+        <h2>Productos registrados</h2>
+        <div class="table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acción</th></tr>
+                </thead>
+                <tbody>
+                {% for product in products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.category.name }}</td>
+                        <td>{{ product.price | money }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>{{ "Activo" if product.active else "Inactivo" }}</td>
+                        <td>
+                            {% if product.active %}
+                            <form method="post" action="{{ url_for('desactivar_producto', product_id=product.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="remove-link" onclick="return confirm('¿Desactivar este producto?')">
+                                    Desactivar
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6">Todavía no hay productos.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel">
+        <h2>Publicar novedad</h2>
+        <form method="post" action="{{ url_for('crear_novedad') }}" class="admin-form" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Título
+                <input name="title" maxlength="180" required>
+            </label>
+            <label>Imagen de la novedad
+                <input name="image" type="file" accept=".jpg,.jpeg,.png,.webp,.gif">
+                <small>Selecciona una foto de tu ordenador. JPG, PNG, WEBP o GIF; máximo 5 MB (opcional).</small>
+            </label>
+            <label>Contenido
+                <textarea name="content" maxlength="10000" rows="4" required></textarea>
+            </label>
+            <button class="btn btn-primary">Publicar novedad</button>
+        </form>
+    </section>
+
+    <section class="admin-panel">
+        <h2>Pedidos recibidos</h2>
+        <div class="table-wrap">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Número</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Actualizar</th></tr>
+                </thead>
+                <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td>
+                            #{{ order.id }}<br>
+                            <a class="text-link" href="{{ url_for('descargar_resumen_pedido', order_id=order.id) }}">Descargar resumen (PDF)</a>
+                        </td>
+                        <td>{{ order.customer.name }}<br>{{ order.customer.phone }}</td>
+                        <td>{{ order.created_at | paraguay_date }}<br><small>Hora de Paraguay</small></td>
+                        <td>{{ order.total | money }}</td>
+                        <td>{{ order.status }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('cambiar_estado_pedido', order_id=order.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <select name="status">
+                                    {% for status in ['Pendiente', 'Confirmado', 'En preparación', 'Enviado', 'Entregado', 'Cancelado'] %}
+                                    <option value="{{ status }}" {% if order.status == status %}selected{% endif %}>{{ status }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="btn btn-secondary">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6">Todavía no hay pedidos.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}

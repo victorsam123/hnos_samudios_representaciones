@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+!.env.example
+.venv
+venv
+__pycache__
+**/__pycache__
+*.py[cod]
+instance
+*.db
+*.db-*
+tmp
+.vscode
+.pytest_cache
+dist

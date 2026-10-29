@@ -1,0 +1,79 @@
+
+{% extends "base.html" %}
+{% block title %}Finalizar pedido | Wilson Samudio{% endblock %}
+
+{% block content %}
+<section class="container section">
+    {% if completed %}
+    <div class="success-panel">
+        <div class="success-icon">✓</div>
+        <span class="eyebrow">PEDIDO REGISTRADO</span>
+        <h1>¡Gracias por tu compra!</h1>
+        <p>Tu pedido número <strong>#{{ order.id }}</strong> fue registrado.</p>
+        <p>Total del pedido: <strong>{{ order.total | money }}</strong></p>
+        <p>El pedido está pendiente de confirmación por parte del negocio.</p>
+        <p><a class="btn btn-secondary" href="{{ url_for('descargar_resumen_pedido', order_id=order.id, token=summary_token) }}">
+            Descargar resumen del pedido (PDF)
+        </a></p>
+        <a class="btn btn-primary" href="{{ whatsapp_url }}" target="_blank" rel="noopener">
+            Enviar pedido por WhatsApp
+        </a>
+        <a class="text-link" href="{{ url_for('index') }}">Volver al inicio</a>
+    </div>
+    {% else %}
+    <div class="checkout-layout">
+        <div>
+            <span class="eyebrow">CASI TERMINAMOS</span>
+            <h1>Datos del pedido</h1>
+            <p>Completa tus datos para registrar tu compra.</p>
+
+            <form method="post" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <label for="name">Nombre y apellido *</label>
+                <input id="name" name="name" maxlength="160" required
+                       autocomplete="name">
+
+                <label for="phone">Número de teléfono *</label>
+                <input id="phone" name="phone" maxlength="30" required
+                       type="tel" autocomplete="tel">
+
+                <label for="city">Ciudad *</label>
+                <input id="city" name="city" maxlength="120" required
+                       autocomplete="address-level2">
+
+                <label for="address">Dirección de entrega</label>
+                <input id="address" name="address" maxlength="250"
+                       autocomplete="street-address">
+
+                <label for="notes">Observaciones</label>
+                <textarea id="notes" name="notes" maxlength="1000"
+                          rows="4" placeholder="Detalles adicionales de tu pedido"></textarea>
+
+                <p class="form-note">
+                    El método de pago y la entrega se coordinarán con el negocio.
+                </p>
+
+                <button class="btn btn-primary btn-full" type="submit">
+                    Confirmar pedido
+                </button>
+            </form>
+        </div>
+
+        <aside class="cart-summary">
+            <h2>Tu pedido</h2>
+            {% for item in items %}
+            <div class="summary-line">
+                <span>{{ item.product.name }} × {{ item.quantity }}</span>
+                <strong>{{ item.subtotal | money }}</strong>
+            </div>
+            {% endfor %}
+            <div class="summary-total">
+                <span>Total</span>
+                <strong>{{ total | money }}</strong>
+            </div>
+        </aside>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

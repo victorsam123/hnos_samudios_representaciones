@@ -1,0 +1,72 @@
+
+{% extends "base.html" %}
+{% block title %}Catálogo | Wilson Samudio Representaciones{% endblock %}
+
+{% block content %}
+<section class="page-banner">
+    <div class="container">
+        <span class="eyebrow">DESCUBRE NUESTRA VARIEDAD</span>
+        <h1>Catálogo de productos</h1>
+        <p>Encuentra el artículo que estás buscando.</p>
+        <a class="btn btn-primary" href="{{ url_for('descargar_catalogo_pdf') }}">
+            Descargar catálogo en PDF
+        </a>
+    </div>
+</section>
+
+<section class="container section">
+    <form method="get" class="catalog-toolbar">
+        <input type="search" name="q" value="{{ search }}" placeholder="Buscar productos...">
+        <select name="categoria">
+            <option value="">Todas las categorías</option>
+            {% for category in categories %}
+            <option value="{{ category.slug }}"
+                {% if category_slug == category.slug %}selected{% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary">Buscar</button>
+    </form>
+
+    <p class="results-count">{{ products | length }} productos encontrados</p>
+
+    <div class="product-grid">
+        {% for product in products %}
+        <article class="product-card">
+            <a href="{{ url_for('producto', product_id=product.id) }}">
+                <div class="product-image">
+                    {% if product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy">
+                    {% else %}
+                    <div class="image-placeholder">WS</div>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <span class="product-category">{{ product.category.name }}</span>
+                    <h3>{{ product.name }}</h3>
+                    <p class="price">{{ product.price | money }}</p>
+                    <p class="stock-text">
+                        {% if product.stock > 0 %}Disponible{% else %}Agotado{% endif %}
+                    </p>
+                </div>
+            </a>
+            {% if product.stock > 0 %}
+            <form method="post" action="{{ url_for('agregar_carrito', product_id=product.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary btn-full">Agregar al carrito</button>
+            </form>
+            {% else %}
+            <button class="btn btn-disabled btn-full" disabled>Agotado</button>
+            {% endif %}
+        </article>
+        {% else %}
+        <div class="empty-state">
+            <h2>No encontramos productos</h2>
+            <p>Prueba otra búsqueda o selecciona una categoría diferente.</p>
+            <a class="btn btn-primary" href="{{ url_for('catalogo') }}">Ver todo el catálogo</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

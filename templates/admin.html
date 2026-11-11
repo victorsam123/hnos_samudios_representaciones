@@ -8,6 +8,7 @@
         <div>
             <span class="eyebrow">GESTIÓN DEL NEGOCIO</span>
             <h1>Panel administrativo</h1>
+            <a class="btn btn-secondary" href="{{ url_for('sales.sellers') }}">Gestión de Vendedores</a>
         </div>
         <form method="post" action="{{ url_for('logout') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -84,27 +85,73 @@
     <section class="admin-panel">
         <h2>Productos registrados</h2>
         <div class="table-wrap">
-            <table class="admin-table">
+            <table class="admin-table admin-product-table">
                 <thead>
-                    <tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Acción</th></tr>
+                    <tr><th>Producto y fotografía</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th>Gestión</th></tr>
                 </thead>
                 <tbody>
                 {% for product in products %}
-                    <tr>
-                        <td>{{ product.name }}</td>
-                        <td>{{ product.category.name }}</td>
-                        <td>{{ product.price | money }}</td>
-                        <td>{{ product.stock }}</td>
-                        <td>{{ "Activo" if product.active else "Inactivo" }}</td>
+                    <tr class="{{ 'product-inactive' if not product.active else '' }}">
                         <td>
-                            {% if product.active %}
-                            <form method="post" action="{{ url_for('desactivar_producto', product_id=product.id) }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button class="remove-link" onclick="return confirm('¿Desactivar este producto?')">
-                                    Desactivar
-                                </button>
-                            </form>
+                            {% if product.image_url %}
+                            <a href="{{ product.image_url }}" target="_blank" rel="noopener"><img class="admin-product-photo" src="{{ product.image_url }}" alt="Fotografía de {{ product.name }}" loading="lazy"></a>
+                            {% else %}
+                            <div class="admin-no-photo">Sin fotografía</div>
                             {% endif %}
+                            <strong>{{ product.name }}</strong>
+                        </td>
+                        <td data-label="Categoría">{{ product.category.name }}</td>
+                        <td data-label="Precio">{{ product.price | money }}</td>
+                        <td data-label="Stock">{{ product.stock }}</td>
+                        <td data-label="Estado"><span class="product-status">{{ "Activo" if product.active else "Inactivo" }}</span></td>
+                        <td class="product-management">
+                            <details class="product-action">
+                                <summary>Editar</summary>
+                                <form method="post" action="{{ url_for('editar_producto', product_id=product.id) }}" class="product-edit-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <label>Nombre<input name="name" value="{{ product.name }}" maxlength="160" required></label>
+                                    <label>Categoría<select name="category_id" required>{% for category in categories %}<option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></label>
+                                    <label>Precio en guaraníes<input name="price" type="number" min="0" step="1" value="{{ product.price }}" required></label>
+                                    <label>Stock<input name="stock" type="number" min="0" step="1" value="{{ product.stock }}" required></label>
+                                    <label>Descripción<textarea name="description" maxlength="5000" rows="3">{{ product.description }}</textarea></label>
+                                    <label class="checkbox-label"><input type="checkbox" name="featured" {% if product.featured %}checked{% endif %}> Producto destacado</label>
+                                    <button class="btn btn-primary">Guardar cambios</button>
+                                </form>
+                            </details>
+                            <details class="product-action">
+                                <summary>Cambiar foto</summary>
+                                <form method="post" action="{{ url_for('cambiar_foto_producto', product_id=product.id) }}" enctype="multipart/form-data">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="expected_image_url" value="{{ product.image_url }}">
+                                    <label>Nueva fotografía<input type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif" required></label>
+                                    <small>JPG, PNG, WEBP o GIF, hasta 5 MB. Reemplaza la foto actual.</small>
+                                    <button class="btn btn-secondary">Guardar foto</button>
+                                </form>
+                            </details>
+                            {% if product.image_url %}
+                            <details class="product-action">
+                                <summary>Eliminar foto</summary>
+                                <form method="post" action="{{ url_for('eliminar_foto_producto', product_id=product.id) }}" data-confirm="¿Eliminar la fotografía de «{{ product.name }}»? Esta acción no elimina el producto.">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="expected_image_url" value="{{ product.image_url }}">
+                                    <label class="checkbox-label"><input type="checkbox" name="confirm" value="yes" required> Confirmo eliminar esta fotografía.</label>
+                                    <button class="btn btn-danger">Eliminar foto</button>
+                                </form>
+                            </details>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('desactivar_producto' if product.active else 'activar_producto', product_id=product.id) }}" class="visibility-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-secondary">{{ "Desactivar producto" if product.active else "Activar producto" }}</button>
+                            </form>
+                            <details class="product-action delete-action">
+                                <summary>Eliminar producto</summary>
+                                <form method="post" action="{{ url_for('eliminar_producto', product_id=product.id) }}" data-confirm="¿Eliminar «{{ product.name }}»? Sin pedidos asociados se borrará definitivamente. Con historial se retirará del catálogo conservando sus datos.">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <p><strong>{{ product.name }}</strong>: si no tiene pedidos, se eliminará definitivamente junto con su fotografía no compartida. Esta acción es irreversible. Con historial, se conservará y desactivará.</p>
+                                    <label class="checkbox-label"><input type="checkbox" name="confirm" value="yes" required> Confirmo eliminar o retirar este producto.</label>
+                                    <button class="btn btn-danger">Eliminar producto</button>
+                                </form>
+                            </details>
                         </td>
                     </tr>
                 {% else %}
@@ -145,6 +192,11 @@
                     <tr>
                         <td>
                             #{{ order.id }}<br>
+                            {% if order.id in commercial_orders %}
+                            <span class="product-status">Pedido comercial</span><br>
+                            {{ commercial_orders[order.id].seller_name }}<br>
+                            <a class="text-link" href="{{ url_for('sales.admin_detail', order_id=order.id) }}">Ver detalle comercial</a><br>
+                            {% else %}<small>Pedido web</small><br>{% endif %}
                             <a class="text-link" href="{{ url_for('descargar_resumen_pedido', order_id=order.id) }}">Descargar resumen (PDF)</a>
                         </td>
                         <td>{{ order.customer.name }}<br>{{ order.customer.phone }}</td>

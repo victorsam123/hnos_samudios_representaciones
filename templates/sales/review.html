@@ -1,0 +1,13 @@
+{% extends "sales/layout.html" %}
+{% from "sales/_macros.html" import csrf with context %}
+{% block sales_content %}
+<h1>Resumen del pedido comercial</h1>
+<div class="form-card sales-order-meta"><p><strong>Número:</strong> se asignará al confirmar.</p><p><strong>Vendedor:</strong> {{ sales_user.full_name }}</p><p><strong>Comercio:</strong> {{ cart.store.name }}</p>
+{% if cart.store.responsible %}<p><strong>Responsable:</strong> {{ cart.store.responsible }}</p>{% endif %}
+{% if cart.store.phone %}<p><strong>Teléfono:</strong> {{ cart.store.phone }}</p>{% endif %}
+<p><strong>Ciudad / dirección:</strong> {{ cart.store.city }} {{ cart.store.address }}</p><p><strong>Fecha y hora de revisión:</strong> {{ sales_now | sales_datetime }} · Paraguay</p><p><strong>Estado al registrar:</strong> Pendiente</p></div>
+<div class="table-wrap"><table class="sales-table"><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio unitario</th><th>Subtotal</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.product.name }}</td><td>{{ row.quantity }}</td><td>{{ row.product.price | money }}</td><td>{{ row.subtotal | money }}</td></tr>{% endfor %}</tbody></table></div>
+<p class="sales-total">Total: {{ total | money }}</p><p><strong>Observaciones:</strong> {{ cart.notes or 'Sin observaciones' }}</p>
+<p class="sales-muted">Los precios y existencias se validarán en el servidor. Registrar el pedido no acredita pago ni entrega.</p>
+<div class="sales-actions"><a class="btn btn-secondary" href="{{ url_for('sales.cart') }}">Volver y corregir</a><form method="post">{{ csrf() }}<input type="hidden" name="quote" value="{{ quote_token }}"><button class="btn btn-primary">Confirmar pedido</button></form></div>
+{% endblock %}

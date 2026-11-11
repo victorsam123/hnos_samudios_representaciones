@@ -14,11 +14,19 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if request.endpoint == 'admin' or request.blueprint == 'sales' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <script src="{{ url_for('static', filename='js/admin-products.js') }}" defer></script>
+    {% endif %}
+    {% if request.blueprint == 'sales' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sales.css') }}">
+    <script src="{{ url_for('static', filename='js/sales.js') }}" defer></script>
+    {% endif %}
     {% block head_extra %}{% endblock %}
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/pwa-install.js') }}" defer></script>
 </head>
-<body>
+<body{% if request.endpoint == 'admin' or request.blueprint == 'sales' %} class="admin-theme{% if request.blueprint == 'sales' %} sales-theme{% endif %}"{% endif %}>
 <header class="site-header">
     <a class="brand" href="{{ url_for('index') }}">
         <img class="brand-logo" src="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}" alt="Samudio Hnos. Representaciones" width="1536" height="1024">
@@ -26,6 +34,7 @@
 
     <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-controls="mainNav" aria-expanded="false">☰</button>
 
+    {% block navigation %}
     <nav class="main-nav" id="mainNav" aria-label="Navegación principal">
         <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>Inicio</a>
         <a href="{{ url_for('catalogo') }}"{% if request.endpoint in ['catalogo', 'producto'] %} aria-current="page"{% endif %}>Catálogo</a>
@@ -35,9 +44,10 @@
             🛒 Carrito <span class="cart-count">{{ cart_count }}</span>
         </a>
     </nav>
+    {% endblock %}
 </header>
 
-{% if request.endpoint != 'admin' %}
+{% if request.endpoint != 'admin' and request.blueprint != 'sales' %}
 <aside class="install-strip" id="installStrip" aria-label="Acceso directo a la tienda" hidden>
     <div class="container install-strip-inner">
         <p>Samudio Hnos., siempre a mano.</p>
@@ -82,6 +92,7 @@
         <a href="{{ url_for('catalogo') }}">Catálogo</a>
         <a href="{{ url_for('novedades') }}">Novedades</a>
         <a href="{{ url_for('carrito') }}">Mi carrito</a>
+        <a href="{{ url_for('sales.login') }}">Acceso vendedores</a>
     </div>
     <div>
         <h3>Contacto</h3>

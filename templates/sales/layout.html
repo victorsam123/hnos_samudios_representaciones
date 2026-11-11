@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Gestión comercial | Samudio Hnos.{% endblock %}
+{% block navigation %}
+<nav class="main-nav" id="mainNav" aria-label="Gestión comercial">
+    {% if sales_user %}
+    <a href="{{ url_for('sales.dashboard') }}">Mi panel</a>
+    <a href="{{ url_for('sales.new_order') }}">Nuevo pedido</a>
+    <a href="{{ url_for('sales.catalog') }}">Catálogo</a>
+    <a href="{{ url_for('sales.cart') }}">Carrito comercial</a>
+    <a href="{{ url_for('sales.history') }}">Mis pedidos</a>
+    <form method="post" action="{{ url_for('sales.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary">Cerrar sesión</button></form>
+    {% elif session.get('admin_authenticated') %}
+    <a href="{{ url_for('admin') }}">Administración</a>
+    <a href="{{ url_for('sales.sellers') }}">Vendedores</a>
+    <a href="{{ url_for('sales.admin_history') }}">Pedidos comerciales</a>
+    <a href="{{ url_for('sales.stores') }}">Comercios</a>
+    {% else %}
+    <a href="{{ url_for('index') }}">Tienda pública</a>
+    <a href="{{ url_for('admin') }}">Administración</a>
+    {% endif %}
+</nav>
+{% endblock %}
+{% block content %}<section class="container section sales-content">{% block sales_content %}{% endblock %}</section>{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "sales/layout.html" %}
+{% block sales_content %}
+<span class="eyebrow">TU JORNADA COMERCIAL</span>
+<h1>{{ sales_user.full_name }}</h1>
+<p>Hora de Paraguay: <time data-live-clock datetime="{{ sales_now.isoformat() }}">{{ sales_now | sales_datetime }}</time></p>
+<div class="admin-stats">
+    <div class="stat-card"><span>Pedidos registrados</span><strong>{{ count }}</strong></div>
+    <div class="stat-card"><span>Importe de pedidos</span><strong>{{ total | money }}</strong></div>
+</div>
+<p class="sales-muted">Los importes registrados no acreditan cobros, pagos ni entregas.</p>
+{% if cart and cart.store %}<div class="sales-notice">Pedido en curso para <strong>{{ cart.store.name }}</strong>. <a class="text-link" href="{{ url_for('sales.cart') }}">Continuar carrito →</a></div>{% endif %}
+<div class="sales-shortcuts">
+    <a class="btn btn-primary" href="{{ url_for('sales.new_order') }}">Nuevo pedido</a>
+    <a class="btn btn-secondary" href="{{ url_for('sales.catalog') }}">Catálogo de productos</a>
+    <a class="btn btn-secondary" href="{{ url_for('sales.cart') }}">Carrito</a>
+    <a class="btn btn-secondary" href="{{ url_for('sales.history') }}">Mis pedidos</a>
+</div>
+{% endblock %}

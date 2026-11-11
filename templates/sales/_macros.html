@@ -1,0 +1,10 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+{% macro pages(pagination) %}
+{% if pagination.pages > 1 %}
+<nav class="sales-pagination" aria-label="Páginas de resultados">
+    {% if pagination.has_prev %}{% set args = request.args.to_dict() %}{% set _ = args.update({'page': pagination.prev_num}) %}<a class="btn btn-secondary" href="{{ url_for(request.endpoint, **args) }}">Anterior</a>{% endif %}
+    <span>Página {{ pagination.page }} de {{ pagination.pages }}</span>
+    {% if pagination.has_next %}{% set args = request.args.to_dict() %}{% set _ = args.update({'page': pagination.next_num}) %}<a class="btn btn-secondary" href="{{ url_for(request.endpoint, **args) }}">Siguiente</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}

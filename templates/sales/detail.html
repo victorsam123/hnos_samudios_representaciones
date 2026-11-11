@@ -1,0 +1,15 @@
+{% extends "sales/layout.html" %}
+{% block sales_content %}
+<article class="sales-print-document">
+<p class="eyebrow">SAMUDIO HNOS. REPRESENTACIONES</p><h1>Resumen del pedido comercial #{{ commercial.order_id }}</h1>
+<div class="sales-order-meta"><p><strong>Vendedor:</strong> {{ commercial.seller_name }}</p><p><strong>Comercio:</strong> {{ commercial.store_name }}</p>
+{% if commercial.store_snapshot.responsible %}<p><strong>Responsable:</strong> {{ commercial.store_snapshot.responsible }}</p>{% endif %}
+{% if commercial.store_snapshot.phone %}<p><strong>Teléfono del comercio:</strong> {{ commercial.store_snapshot.phone }}</p>{% endif %}
+<p><strong>Ciudad / dirección:</strong> {{ commercial.store_snapshot.city }} {{ commercial.store_snapshot.address }}</p><p><strong>Fecha y hora:</strong> {{ commercial.order.created_at | sales_datetime }} · Paraguay</p><p><strong>Estado:</strong> {{ commercial.order.status }}</p></div>
+<div class="table-wrap"><table class="sales-table"><thead><tr><th>Producto</th><th>Cantidad</th><th>Precio unitario</th><th>Subtotal</th></tr></thead><tbody>{% for item in commercial.items_snapshot %}<tr><td>{{ item.name }}</td><td>{{ item.quantity }}</td><td>{{ item.unit_price | money }}</td><td>{{ item.subtotal | money }}</td></tr>{% endfor %}</tbody></table></div>
+<p class="sales-total">Total: {{ commercial.order.total | money }}</p><p><strong>Observaciones:</strong> {{ commercial.order.notes or 'Sin observaciones' }}</p>
+<p>Teléfono comercial: 0983620676</p><p class="sales-muted">Resumen comercial. No es una factura legal ni un comprobante de pago o entrega.</p>
+</article>
+<div class="sales-actions no-print"><button type="button" class="btn btn-primary" data-print>Imprimir resumen</button><a class="btn btn-secondary" href="{{ url_for('sales.admin_pdf' if admin_mode else 'sales.pdf', order_id=commercial.order_id) }}">Descargar PDF</a><a class="btn btn-secondary" href="{{ url_for('sales.admin_history' if admin_mode else 'sales.history') }}">Volver al historial</a></div>
+{% if admin_mode %}<form method="post" action="{{ url_for('cambiar_estado_pedido', order_id=commercial.order_id) }}" class="sales-form form-card no-print"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Estado del pedido<select name="status">{% for state in sales_statuses %}<option value="{{ state }}" {% if state == commercial.order.status %}selected{% endif %}>{{ state }}</option>{% endfor %}</select></label><button class="btn btn-secondary">Actualizar estado</button><small>Utiliza las reglas actuales de la tienda; cambiar de estado no vuelve a descontar stock ni acredita un cobro.</small></form>{% endif %}
+{% endblock %}

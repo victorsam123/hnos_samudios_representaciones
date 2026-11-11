@@ -1,0 +1,21 @@
+{% extends "sales/layout.html" %}
+{% from "sales/_macros.html" import csrf with context %}
+{% block sales_content %}
+<span class="eyebrow">PEDIDO EN CURSO</span><h1>Carrito comercial</h1>
+{% if cart and cart.store %}
+<p>Comercio: <strong>{{ cart.store.name }}</strong> · Vendedor: {{ sales_user.full_name }}</p>
+<div class="sales-cart-list">
+{% for row in rows %}<article class="sales-cart-item">
+    {% if row.product.image_url %}<img src="{{ row.product.image_url }}" alt="{{ row.product.name }}">{% else %}<div class="admin-no-photo">Sin fotografía</div>{% endif %}
+    <div><h2>{{ row.product.name }}</h2><p>{{ row.product.price | money }} por unidad · Stock: {{ row.product.stock }}</p><strong>Subtotal: {{ row.subtotal | money }}</strong>{% if not row.valid %}<p class="sales-warning">No disponible en la cantidad solicitada. Corrige o elimina el artículo.</p>{% endif %}</div>
+    <div class="sales-cart-actions">
+        <form method="post" action="{{ url_for('sales.change_cart', product_id=row.product.id) }}">{{ csrf() }}<input type="hidden" name="cart_key" value="{{ cart.checkout_key }}"><input type="hidden" name="action" value="update"><label>Cantidad<input name="quantity" type="number" value="{{ row.quantity }}" min="0" max="1000000" step="1" required inputmode="numeric"></label><button class="btn btn-secondary">Actualizar</button></form>
+        <form method="post" action="{{ url_for('sales.change_cart', product_id=row.product.id) }}">{{ csrf() }}<input type="hidden" name="cart_key" value="{{ cart.checkout_key }}"><input type="hidden" name="action" value="remove"><input type="hidden" name="quantity" value="0"><button class="btn btn-danger">Eliminar del carrito</button></form>
+    </div>
+</article>{% else %}<p>Aún no agregaste productos.</p>{% endfor %}
+</div>
+<form method="post" class="form-card sales-form">{{ csrf() }}<input type="hidden" name="cart_key" value="{{ cart.checkout_key }}"><label for="order_notes">Observaciones del pedido</label><textarea id="order_notes" name="notes" maxlength="1000" rows="3">{{ cart.notes }}</textarea><button class="btn btn-secondary">Guardar observaciones</button></form>
+<div class="sales-total">Total actual: {{ total | money }}</div>
+<div class="sales-actions"><a class="btn btn-secondary" href="{{ url_for('sales.catalog') }}">Seguir seleccionando</a>{% if rows %}<a class="btn btn-primary" href="{{ url_for('sales.review') }}">Revisar pedido</a>{% endif %}</div>
+{% else %}<p>Identifica el comercio antes de preparar un pedido.</p><a class="btn btn-primary" href="{{ url_for('sales.new_order') }}">Nuevo pedido</a>{% endif %}
+{% endblock %}

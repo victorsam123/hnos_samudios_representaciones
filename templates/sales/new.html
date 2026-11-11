@@ -1,0 +1,21 @@
+{% extends "sales/layout.html" %}
+{% from "sales/_macros.html" import csrf with context %}
+{% block sales_content %}
+<span class="eyebrow">PASO 1 · COMERCIO VISITADO</span><h1>Nuevo pedido</h1>
+<p>Selecciona un comercio guardado o registra uno nuevo. Los comercios guardados pertenecen a tu cuenta.</p>
+{% if cart and cart.store %}<p class="sales-notice">Carrito actual: <strong>{{ cart.store.name }}</strong>. <a href="{{ url_for('sales.cart') }}" class="text-link">Continuar</a></p>{% endif %}
+<form method="post" class="form-card sales-form">
+    {{ csrf() }}
+    <label for="store_id">Reutilizar un comercio</label>
+    <select id="store_id" name="store_id"><option value="">Registrar un comercio nuevo</option>{% for store in stores %}<option value="{{ store.id }}">{{ store.name }}{% if store.city %} · {{ store.city }}{% endif %}</option>{% endfor %}</select>
+    <p class="sales-muted">Para un comercio nuevo, completa los datos de abajo. Si seleccionas uno guardado, se utilizará su ficha existente.</p>
+    <label for="store_name">Nombre del comercio o cliente *</label><input id="store_name" name="name" maxlength="160" data-store-name>
+    <label for="responsible">Persona responsable</label><input id="responsible" name="responsible" maxlength="160">
+    <label for="phone">Teléfono</label><input id="phone" name="phone" type="tel" maxlength="30">
+    <label for="city">Ciudad</label><input id="city" name="city" maxlength="120">
+    <label for="address">Dirección</label><input id="address" name="address" maxlength="250">
+    <label for="notes">Observaciones del comercio</label><textarea id="notes" name="notes" maxlength="1000" rows="3"></textarea>
+    {% if cart and cart.items %}<label class="sales-checkbox"><input type="checkbox" name="confirm_switch" value="yes"> Confirmo vaciar el carrito actual si cambio de comercio.</label>{% endif %}
+    <button class="btn btn-primary">Iniciar pedido y ver catálogo</button>
+</form>
+{% endblock %}

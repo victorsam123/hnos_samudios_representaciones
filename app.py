@@ -31,15 +31,14 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 from itsdangerous import BadSignature, URLSafeSerializer
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from local_time import PARAGUAY_TIMEZONE, format_paraguay_datetime
+from extensions import db, csrf
 
 load_dotenv()
 
-db = SQLAlchemy()
-csrf = CSRFProtect()
 F = TypeVar("F", bound=Callable[..., Any])
 
 
@@ -251,12 +250,54 @@ def _save_uploaded_image() -> str:
     folder = Path(app.config["UPLOAD_FOLDER"])
     folder.mkdir(parents=True, exist_ok=True)
     filename = f"{secrets.token_hex(16)}{extension}"
-    upload.save(folder / filename)
+    try:
+        upload.save(folder / filename)
+    except OSError:
+        # A failed upload must not leave a partially written file behind.
+        (folder / filename).unlink(missing_ok=True)
+        raise
     return url_for("uploaded_image", filename=filename)
 
 
 def _format_money(value: int | float) -> str:
     return f"{int(value):,}".replace(",", ".") + " Gs."
+
+
+def _cleanup_product_image(image_url: str) -> bool:
+    """Remove only unreferenced uploads created by this application.
+
+    External URLs, static brand assets, symlinks and unknown filenames are
+    deliberately left alone. Call only after the database change commits.
+    """
+    match = re.fullmatch(r"/uploads/([0-9a-f]{32}\.(?:jpg|jpeg|png|webp|gif))", image_url)
+    if not match:
+        return True
+    try:
+        # Also retain files referenced through an absolute URL or a query string.
+        if db.session.scalar(select(Product.id).where(Product.image_url.contains(image_url)).limit(1)):
+            return True
+        if db.session.scalar(select(News.id).where(News.image_url.contains(image_url)).limit(1)):
+            return True
+        folder = Path(app.config["UPLOAD_FOLDER"]).resolve()
+        path = folder / match.group(1)
+        if path.is_symlink() or path.resolve().parent != folder:
+            app.logger.warning("Skipped unsafe product image cleanup")
+            return False
+        path.unlink(missing_ok=True)
+        return True
+    except (OSError, SQLAlchemyError):
+        db.session.rollback()
+        app.logger.exception("Could not clean up unused product image")
+        return False
+
+
+def _finish_image_cleanup(image_url: str) -> None:
+    if not _cleanup_product_image(image_url):
+        flash("Los cambios se guardaron, pero no se pudo quitar el archivo del almacenamiento. Solicita su revisión al responsable del sitio.", "error")
+
+
+def _locked_product(product_id: int) -> Product | None:
+    return db.session.scalar(select(Product).where(Product.id == product_id).with_for_update())
 
 
 app = Flask(__name__, instance_relative_config=True)
@@ -576,9 +617,15 @@ def descargar_resumen_pedido(order_id: int):
         abort(404)
 
     from order_pdf import build_order_pdf
+    commercial = db.session.get(SalesOrder, order.id)
+    if commercial:
+        from sales_pdf import build_commercial_pdf
+        document = build_commercial_pdf(commercial)
+    else:
+        document = build_order_pdf(order)
 
     response = send_file(
-        build_order_pdf(order), mimetype="application/pdf", as_attachment=True,
+        document, mimetype="application/pdf", as_attachment=True,
         download_name=f"pedido-{order.id}-wilson-samudio.pdf",
     )
     response.headers["Cache-Control"] = "private, no-store"
@@ -634,7 +681,8 @@ def admin():
         select(News).order_by(News.created_at.desc()).limit(50)
     ).all()
     return render_template(
-        "admin.html", products=products, categories=categories, orders=orders, news=news
+        "admin.html", products=products, categories=categories, orders=orders, news=news,
+        commercial_orders={item.order_id: item for item in db.session.scalars(select(SalesOrder).where(SalesOrder.order_id.in_([order.id for order in orders]))).all()}
     )
 
 
@@ -726,12 +774,158 @@ def crear_producto():
 @app.post("/admin/productos/<int:product_id>/desactivar")
 @_admin_required
 def desactivar_producto(product_id: int):
-    product = db.session.get(Product, product_id)
-    if product is None:
-        abort(404)
-    product.active = False
-    db.session.commit()
-    flash("Producto desactivado.", "success")
+    return _change_product_visibility(product_id, False)
+
+
+def _change_product_visibility(product_id: int, active: bool):
+    try:
+        product = _locked_product(product_id)
+        if product is None:
+            flash("El producto ya no está disponible. Actualiza el listado.", "error")
+        else:
+            product.active = active
+            db.session.commit()
+            flash("Producto activado." if active else "Producto desactivado.", "success")
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Could not change product visibility")
+        flash("No se pudo cambiar el estado. Los datos se conservaron; vuelve a intentarlo.", "error")
+    return redirect(url_for("admin"))
+
+
+@app.post("/admin/productos/<int:product_id>/activar")
+@_admin_required
+def activar_producto(product_id: int):
+    return _change_product_visibility(product_id, True)
+
+
+@app.post("/admin/productos/<int:product_id>/editar")
+@_admin_required
+def editar_producto(product_id: int):
+    try:
+        product = _locked_product(product_id)
+        if product is None:
+            flash("El producto ya no está disponible.", "error")
+            return redirect(url_for("admin"))
+        name = request.form.get("name", "").strip()
+        category_id = int(request.form.get("category_id", ""))
+        price = int(request.form.get("price", ""))
+        stock = int(request.form.get("stock", ""))
+        if not name or len(name) > 160 or price < 0 or stock < 0 or db.session.get(Category, category_id) is None:
+            raise ValueError("Revisa el nombre, categoría, precio y stock del producto.")
+        product.name = name
+        product.category_id = category_id
+        product.price = price
+        product.stock = stock
+        product.description = request.form.get("description", "").strip()[:5000]
+        product.featured = "featured" in request.form
+        db.session.commit()
+        flash("Producto actualizado.", "success")
+    except ValueError:
+        db.session.rollback()
+        flash("Revisa el nombre, categoría, precio y stock del producto.", "error")
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Could not edit product")
+        flash("No se pudo actualizar el producto. Los datos se conservaron.", "error")
+    return redirect(url_for("admin"))
+
+
+@app.post("/admin/productos/<int:product_id>/foto")
+@_admin_required
+def cambiar_foto_producto(product_id: int):
+    new_image = ""
+    old_image = ""
+    try:
+        product = _locked_product(product_id)
+        if product is None:
+            flash("El producto ya no está disponible.", "error")
+            return redirect(url_for("admin"))
+        old_image = product.image_url
+        if request.form.get("expected_image_url") != old_image:
+            flash("La fotografía cambió en otra sesión. Actualiza el listado antes de continuar.", "error")
+            return redirect(url_for("admin"))
+        new_image = _save_uploaded_image()
+        if not new_image:
+            raise ValueError("Selecciona una fotografía para cargar.")
+        product.image_url = new_image
+        db.session.commit()
+    except (ValueError, OSError, SQLAlchemyError) as exc:
+        db.session.rollback()
+        if new_image:
+            _finish_image_cleanup(new_image)
+        if isinstance(exc, ValueError):
+            flash(str(exc), "error")
+        else:
+            app.logger.exception("Could not change product image")
+            flash("No se pudo cambiar la fotografía. La imagen anterior se conservó.", "error")
+        return redirect(url_for("admin"))
+    _finish_image_cleanup(old_image)
+    flash("Fotografía actualizada.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.post("/admin/productos/<int:product_id>/foto/eliminar")
+@_admin_required
+def eliminar_foto_producto(product_id: int):
+    old_image = ""
+    try:
+        product = _locked_product(product_id)
+        if product is None:
+            flash("El producto ya no está disponible.", "error")
+            return redirect(url_for("admin"))
+        if request.form.get("confirm") != "yes":
+            flash("Confirma expresamente la eliminación de la fotografía.", "error")
+            return redirect(url_for("admin"))
+        old_image = product.image_url
+        if not old_image or request.form.get("expected_image_url") != old_image:
+            flash("La fotografía cambió o ya fue eliminada. Actualiza el listado.", "error")
+            return redirect(url_for("admin"))
+        product.image_url = ""
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Could not remove product image")
+        flash("No se pudo eliminar la fotografía. Los datos se conservaron.", "error")
+        return redirect(url_for("admin"))
+    _finish_image_cleanup(old_image)
+    flash("Fotografía eliminada del producto.", "success")
+    return redirect(url_for("admin"))
+
+
+@app.post("/admin/productos/<int:product_id>/eliminar")
+@_admin_required
+def eliminar_producto(product_id: int):
+    old_image = ""
+    try:
+        product = _locked_product(product_id)
+        if product is None:
+            flash("El producto ya no está disponible.", "error")
+            return redirect(url_for("admin"))
+        if request.form.get("confirm") != "yes":
+            flash("Confirma expresamente la eliminación del producto.", "error")
+            return redirect(url_for("admin"))
+        has_orders = db.session.scalar(select(OrderItem.id).where(OrderItem.product_id == product.id).limit(1))
+        if has_orders:
+            product.active = False
+            db.session.commit()
+            flash("Producto retirado del catálogo. Se conservaron sus datos y fotografías porque tiene historial de pedidos.", "success")
+        else:
+            old_image = product.image_url
+            db.session.delete(product)
+            db.session.commit()
+            flash("Producto eliminado definitivamente.", "success")
+    except IntegrityError:
+        db.session.rollback()
+        flash("El producto tiene relaciones que impiden eliminarlo. Sus datos se conservaron; puedes desactivarlo.", "error")
+        return redirect(url_for("admin"))
+    except SQLAlchemyError:
+        db.session.rollback()
+        app.logger.exception("Could not delete product")
+        flash("No se pudo eliminar el producto. Los datos se conservaron.", "error")
+        return redirect(url_for("admin"))
+    if old_image:
+        _finish_image_cleanup(old_image)
     return redirect(url_for("admin"))
 
 
@@ -778,11 +972,20 @@ def cambiar_estado_pedido(order_id: int):
     if status not in allowed_statuses:
         flash("El estado indicado no es válido.", "error")
         return redirect(url_for("admin"))
+    if db.session.get(SalesOrder, order.id):
+        db.session.add(SalesAudit(actor="administrador", event="commercial_order_status", subject_id=order.id, details={"previous": order.status, "status": status}))
     order.status = status
     db.session.commit()
     flash(f"El pedido #{order.id} se actualizó.", "success")
     return redirect(url_for("admin"))
 
+
+from flask_migrate import Migrate
+from sales import init_sales
+from sales_models import SalesOrder, SalesAudit
+
+init_sales(app, (Product, Category, Customer, Order, OrderItem), _admin_required)
+migrate = Migrate(app, db)
 
 if __name__ == "__main__":
     app.run(debug=os.getenv("FLASK_DEBUG", "").lower() == "true")

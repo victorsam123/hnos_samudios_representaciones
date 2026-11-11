@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "preDeployCommand": ["flask --app app db upgrade"],
     "startCommand": "gunicorn --config gunicorn.conf.py app:app",
     "healthcheckPath": "/",
     "healthcheckTimeout": 120,

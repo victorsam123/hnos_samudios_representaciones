@@ -1,0 +1,2 @@
+{% extends "sales/layout.html" %}
+{% block sales_content %}<div class="form-card"><h1>No se pudo completar la operación</h1><p>Ocurrió un problema de base de datos. Los cambios no confirmados se revirtieron.</p><p>Si estabas registrando un pedido, consulta el historial antes de reintentar. El sistema protege contra confirmaciones duplicadas.</p><p>Si el problema continúa, informa al administrador.</p><a class="btn btn-secondary" href="{{ url_for('sales.login') }}">Volver al acceso</a></div>{% endblock %}

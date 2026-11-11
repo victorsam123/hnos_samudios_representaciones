@@ -29,7 +29,13 @@ de productos, novedades y pedidos.
    `.env` actual si ya tienes configurado el acceso. Las credenciales de ejemplo
    son marcadores y deben sustituirse antes de publicar.
 
-4. Inicia el sitio:
+4. Prepara las tablas del módulo comercial sin recrear las existentes:
+
+   ```powershell
+   flask --app app db upgrade
+   ```
+
+5. Inicia el sitio:
 
    ```powershell
    python app.py
@@ -42,6 +48,15 @@ La tienda empieza con las categorías predefinidas y sin productos. Inicia
 sesión en `/admin` para registrar los productos, publicar novedades y gestionar
 los pedidos. Los pagos y la entrega se coordinan directamente con el negocio;
 no se procesa información de tarjetas.
+
+## Gestión de Vendedores
+
+Desde `/admin`, entra a **Gestión de Vendedores** para crear las cuentas del equipo.
+Los vendedores ingresan en `/vendedor/ingresar` y disponen de catálogo real,
+comercios reutilizables, carrito independiente, pedidos comerciales e impresión/PDF.
+Consulta [MODULO-VENDEDORES.md](MODULO-VENDEDORES.md) para instalación, migraciones,
+seguridad, reglas de stock, pruebas y límites de verificación. En Railway,
+`railway.json` ejecuta las migraciones antes del despliegue.
 
 Desde la sección **Categorías** del panel administrativo puedes agregar nuevas
 categorías. Quedan guardadas y aparecen, en orden alfabético, en el inicio,

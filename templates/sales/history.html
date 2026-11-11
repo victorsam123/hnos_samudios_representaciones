@@ -1,0 +1,16 @@
+{% extends "sales/layout.html" %}
+{% from "sales/_macros.html" import pages with context %}
+{% block sales_content %}
+<span class="eyebrow">HISTORIAL COMERCIAL</span><h1>{{ 'Pedidos de vendedores' if admin_mode else 'Mis pedidos' }}</h1>
+<form method="get" class="sales-filters">
+    <label>Comercio<input name="q" value="{{ request.args.get('q', '') }}" maxlength="160" type="search"></label>
+    <label>Desde<input type="date" name="from" value="{{ request.args.get('from', '') }}"></label><label>Hasta<input type="date" name="to" value="{{ request.args.get('to', '') }}"></label>
+    {% if admin_mode %}<label>Vendedor<select name="seller"><option value="">Todos</option>{% for user in users %}<option value="{{ user.id }}" {% if request.args.get('seller') == user.id|string %}selected{% endif %}>{{ user.full_name }}</option>{% endfor %}</select></label><label>Estado<select name="status"><option value="">Todos</option>{% for state in sales_statuses %}<option {% if request.args.get('status') == state %}selected{% endif %}>{{ state }}</option>{% endfor %}</select></label>{% endif %}
+    <button class="btn btn-primary">Filtrar</button><a class="btn btn-secondary" href="{{ url_for(request.endpoint) }}">Limpiar filtros</a>
+</form>
+<p class="sales-muted">{{ pagination.total }} pedidos encontrados. Los importes registrados incluyen los estados indicados y no acreditan ventas cobradas.</p>
+<div class="sales-history">
+{% for commercial in orders %}<article class="form-card"><h2>Pedido comercial #{{ commercial.order_id }}</h2><p>{{ commercial.order.created_at | sales_datetime }} · Paraguay</p><p><strong>{{ commercial.store_name }}</strong></p>{% if admin_mode %}<p>Vendedor: {{ commercial.seller_name }}</p>{% endif %}<p class="price">{{ commercial.order.total | money }}</p><span class="product-status">{{ commercial.order.status }}</span><div class="sales-actions"><a class="btn btn-secondary" href="{{ url_for('sales.admin_detail' if admin_mode else 'sales.detail', order_id=commercial.order_id) }}">Ver detalle</a><a class="btn btn-secondary" href="{{ url_for('sales.admin_detail' if admin_mode else 'sales.detail', order_id=commercial.order_id, imprimir=1) }}">Imprimir resumen</a><a class="text-link" href="{{ url_for('sales.admin_pdf' if admin_mode else 'sales.pdf', order_id=commercial.order_id) }}">PDF</a></div></article>{% else %}<p>No hay pedidos para estos filtros.</p>{% endfor %}
+</div>
+{{ pages(pagination) }}
+{% endblock %}

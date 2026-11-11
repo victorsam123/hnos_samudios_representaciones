@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_extra %}{% endblock %}
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 <body>
@@ -18,14 +19,14 @@
         <img class="brand-logo" src="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}" alt="Samudio Hnos. Representaciones" width="1536" height="1024">
     </a>
 
-    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menú">☰</button>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Abrir menú" aria-controls="mainNav" aria-expanded="false">☰</button>
 
-    <nav class="main-nav" id="mainNav">
-        <a href="{{ url_for('index') }}">Inicio</a>
-        <a href="{{ url_for('catalogo') }}">Catálogo</a>
-        <a href="{{ url_for('novedades') }}">Novedades</a>
+    <nav class="main-nav" id="mainNav" aria-label="Navegación principal">
+        <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>Inicio</a>
+        <a href="{{ url_for('catalogo') }}"{% if request.endpoint in ['catalogo', 'producto'] %} aria-current="page"{% endif %}>Catálogo</a>
+        <a href="{{ url_for('novedades') }}"{% if request.endpoint == 'novedades' %} aria-current="page"{% endif %}>Novedades</a>
         <a href="https://wa.me/{{ whatsapp }}" target="_blank" rel="noopener">Contacto</a>
-        <a class="cart-link" href="{{ url_for('carrito') }}">
+        <a class="cart-link" href="{{ url_for('carrito') }}"{% if request.endpoint in ['carrito', 'checkout'] %} aria-current="page"{% endif %}>
             🛒 Carrito <span class="cart-count">{{ cart_count }}</span>
         </a>
     </nav>

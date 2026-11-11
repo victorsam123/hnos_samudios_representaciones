@@ -1,11 +1,12 @@
 
 {% extends "base.html" %}
 {% block title %}Inicio | Wilson Samudio Representaciones{% endblock %}
+{% block head_extra %}<link rel="preload" as="image" href="{{ url_for('static', filename='img/hero-variedad.webp') }}" media="(min-width: 681px)"><link rel="preload" as="image" href="{{ url_for('static', filename='img/hero-variedad-mobile.webp') }}" media="(max-width: 680px)">{% endblock %}
 
 {% block content %}
 <section class="hero">
     <div class="hero-content">
-        <span class="eyebrow">WILSON SAMUDIO REPRESENTACIONES</span>
+        <span class="eyebrow">PARA TU HOGAR Y CADA AVENTURA</span>
         <h1>Todo lo que necesitas, <span>en un solo lugar.</span></h1>
         <p>Descubre nuestra variedad de productos para el hogar,
            la aventura, la movilidad y toda la familia.</p>
@@ -19,11 +20,6 @@
             <a class="btn btn-outline" href="{{ url_for('admin') }}">
                 Acceso administrador
             </a>
-        </div>
-    </div>
-    <div class="hero-decoration">
-        <div class="hero-logo-panel">
-            <img class="hero-logo" src="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}" alt="Samudio Hnos. Representaciones" width="1536" height="1024" fetchpriority="high">
         </div>
         <div class="hero-label">VARIEDAD · CALIDAD · ATENCIÓN</div>
     </div>

@@ -7,11 +7,16 @@
     <meta name="description" content="Descubre los productos de Wilson Samudio Representaciones. Bazar, bicicletas, cocina, camping, termos y artículos para bebés.">
     <title>{% block title %}Wilson Samudio Representaciones{% endblock %}</title>
     <meta name="theme-color" content="#102c57">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='img/pwa/apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Samudio Hnos.">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-samudio-hnos-transparente.png') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/manrope-variable.ttf') }}" as="font" type="font/ttf" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head_extra %}{% endblock %}
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/pwa-install.js') }}" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -31,6 +36,25 @@
         </a>
     </nav>
 </header>
+
+{% if request.endpoint != 'admin' %}
+<aside class="install-strip" id="installStrip" aria-label="Acceso directo a la tienda" hidden>
+    <div class="container install-strip-inner">
+        <p>Samudio Hnos., siempre a mano.</p>
+        <button class="btn btn-secondary install-button" type="button" id="installApp" aria-describedby="installHint">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" focusable="false"><path d="M12 3v12m-4-4 4 4 4-4M5 16v5h14v-5"/></svg>
+            Instalar acceso directo
+        </button>
+        <span id="installHint" class="install-hint">Ver instrucciones para tu navegador.</span>
+    </div>
+</aside>
+<dialog class="install-dialog" id="installGuide" aria-labelledby="installTitle" aria-describedby="installSteps">
+    <h2 id="installTitle">Tu tienda en la pantalla de inicio</h2>
+    <div id="installSteps"></div>
+    <p class="install-note">El acceso abre la misma tienda. Necesitas internet para consultar productos y realizar pedidos.</p>
+    <form method="dialog"><button class="btn btn-primary" type="submit">Entendido</button></form>
+</dialog>
+{% endif %}
 
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}

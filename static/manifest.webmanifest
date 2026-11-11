@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Samudio Hnos.",
+  "short_name": "Samudio Hnos.",
+  "description": "Bazar, bicicletas, cocina, camping, termos y artículos para bebés.",
+  "lang": "es-PY",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#102c57",
+  "background_color": "#102c57",
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "img/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -321,6 +321,27 @@ input:focus, select:focus, textarea:focus { outline-offset: 0; }
  .hero-actions .btn { flex: 1 1 170px; }
  .hero-label { margin-top: 26px; font-size: .59rem; }
 }
+.install-strip[hidden] { display: none; }
+.install-strip { padding-block: 12px; border-bottom: 1px solid #e8d7b4; background: #fcf8ef; }
+.install-strip-inner { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; }
+.install-strip p { margin: 0; font-size: .88rem; font-weight: 750; }
+.install-button { gap: 9px; border-color: #c89d4e; color: #102c57; background: #fff; }
+.install-button:hover { background: #f4e6c7; }
+.install-button:disabled { opacity: .65; cursor: wait; }
+.install-hint { color: #536078; font-size: .78rem; }
+.install-dialog { width: min(490px, calc(100% - 32px)); max-height: calc(100dvh - 40px); padding: 28px; overflow-y: auto; border: 1px solid var(--line); border-top: 3px solid #c89d4e; border-radius: 16px; color: var(--ink); background: #fff; box-shadow: var(--shadow); }
+.install-dialog::backdrop { background: rgba(9,25,48,.65); }
+.install-dialog h2 { font-size: 1.35rem; }
+.install-dialog ol { padding-left: 22px; }
+.install-dialog li + li { margin-top: 12px; }
+.install-note { color: var(--muted); font-size: .85rem; }
+@media (max-width: 680px) {
+ .install-strip-inner { gap: 8px; }
+ .install-strip p { flex-basis: 100%; }
+ .install-hint { flex-basis: 100%; }
+ .install-dialog { padding: 22px; }
+}
+@media (display-mode: standalone) { .install-strip { display: none; } }
 @media (prefers-reduced-motion: reduce) {
  html { scroll-behavior: auto; }
  *, *::before, *::after { transition: none !important; }
